@@ -8,7 +8,7 @@ const Project = require('../models/Project');
 const Transaction = require('../models/Transaction');
 
 // Configuration de la connexion MongoDB
-const MONGODB_URI = 'mongodb://mongo:djnoJpkMyBZZoYbOgfLFMjGurMtjEdye@metro.proxy.rlwy.net:12298';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://mongo:djnoJpkMyBZZoYbOgfLFMjGurMtjEdye@metro.proxy.rlwy.net:12298';
 
 // Données d'initialisation
 const initialUsers = [
@@ -304,14 +304,14 @@ async function initializeDatabase() {
     await mongoose.connect(MONGODB_URI);
     console.log('✅ Connexion MongoDB établie');
     
-    // Nettoyer la base de données existante
-    console.log('🧹 Nettoyage de la base de données...');
-    await Promise.all([
-      User.deleteMany({}),
-      Project.deleteMany({}),
-      Transaction.deleteMany({})
-    ]);
-    console.log('✅ Base de données nettoyée');
+    // Vérifier si la base est déjà initialisée
+    const existingUsers = await User.countDocuments();
+    if (existingUsers > 0) {
+      console.log(`ℹ️  ${existingUsers} utilisateur(s) existent déjà, pas d'initialisation nécessaire`);
+      return;
+    }
+    
+    console.log('📝 Base vide, initialisation en cours...');
     
     // Créer les utilisateurs
     console.log('👥 Création des utilisateurs...');

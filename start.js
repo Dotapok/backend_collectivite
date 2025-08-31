@@ -101,123 +101,26 @@ async function checkMongoDB() {
 // Fonction pour initialiser la base de données
 async function initializeDatabase() {
   try {
-    const mongoose = require('mongoose');
-    const User = require('./models/User');
-    const bcrypt = require('bcryptjs');
+    log('   📝 Import du script d\'initialisation...', 'cyan');
     
-    // Se connecter à MongoDB
-    await mongoose.connect(process.env.MONGODB_URI);
+    // Utiliser le script existant
+    const { initializeDatabase: initDb } = require('./scripts/initDb');
     
     // Vérifier si des utilisateurs existent déjà
+    const mongoose = require('mongoose');
+    const User = require('./models/User');
+    
+    await mongoose.connect(process.env.MONGODB_URI);
     const userCount = await User.countDocuments();
+    await mongoose.disconnect();
     
     if (userCount === 0) {
-      log('   📝 Création des utilisateurs de test...', 'cyan');
-      
-      // Créer l'utilisateur admin
-      const adminPassword = await bcrypt.hash('Admin@2024', 12);
-      const adminUser = new User({
-        username: 'admin',
-        email: 'admin@dtc-ekani.com',
-        password: adminPassword,
-        firstName: 'Administrateur',
-        lastName: 'Système',
-        role: 'admin',
-        entity: 'DTC',
-        region: 'Yaoundé',
-        isActive: true,
-        isVerified: true,
-        permissions: [
-          'create_project',
-          'edit_project',
-          'delete_project',
-          'evaluate_project',
-          'approve_project',
-          'validate_budget',
-          'view_reports',
-          'manage_users',
-          'system_admin'
-        ]
-      });
-      await adminUser.save();
-      log('   ✅ Utilisateur admin créé', 'green');
-      
-      // Créer l'utilisateur CTD
-      const ctdPassword = await bcrypt.hash('Ctd@2024', 12);
-      const ctdUser = new User({
-        username: 'ctd_user',
-        email: 'ctd@dtc-ekani.com',
-        password: ctdPassword,
-        firstName: 'Utilisateur',
-        lastName: 'CTD',
-        role: 'ctd',
-        entity: 'CTD',
-        region: 'Yaoundé',
-        isActive: true,
-        isVerified: true,
-        permissions: [
-          'create_project',
-          'edit_project',
-          'view_reports'
-        ]
-      });
-      await ctdUser.save();
-      log('   ✅ Utilisateur CTD créé', 'green');
-      
-      // Créer l'utilisateur MINDDEVEL
-      const minddevelPassword = await bcrypt.hash('Minddevel@2024', 12);
-      const minddevelUser = new User({
-        username: 'minddevel_user',
-        email: 'minddevel@dtc-ekani.com',
-        password: minddevelPassword,
-        firstName: 'Utilisateur',
-        lastName: 'MINDDEVEL',
-        role: 'minddevel',
-        entity: 'MINDDEVEL',
-        region: 'Yaoundé',
-        isActive: true,
-        isVerified: true,
-        permissions: [
-          'create_project',
-          'edit_project',
-          'evaluate_project',
-          'view_reports'
-        ]
-      });
-      await minddevelUser.save();
-      log('   ✅ Utilisateur MINDDEVEL créé', 'green');
-      
-      // Créer l'utilisateur MINFI
-      const minfiPassword = await bcrypt.hash('Minfi@2024', 12);
-      const minfiUser = new User({
-        username: 'minfi_user',
-        email: 'minfi@dtc-ekani.com',
-        password: minfiPassword,
-        firstName: 'Utilisateur',
-        lastName: 'MINFI',
-        role: 'minfi',
-        entity: 'MINFI',
-        region: 'Yaoundé',
-        isActive: true,
-        isVerified: true,
-        permissions: [
-          'create_project',
-          'edit_project',
-          'approve_project',
-          'validate_budget',
-          'view_reports'
-        ]
-      });
-      await minfiUser.save();
-      log('   ✅ Utilisateur MINFI créé', 'green');
-      
-      log('   🎉 Tous les utilisateurs de test ont été créés!', 'green');
+      log('   🗄️  Base vide, initialisation complète...', 'cyan');
+      await initDb();
+      log('   ✅ Base de données initialisée avec succès', 'green');
     } else {
       log(`   ℹ️  ${userCount} utilisateur(s) existent déjà, pas d'initialisation nécessaire`, 'cyan');
     }
-    
-    // Fermer la connexion
-    await mongoose.disconnect();
     
   } catch (error) {
     log('❌ Erreur lors de l\'initialisation de la base de données:', 'red');
