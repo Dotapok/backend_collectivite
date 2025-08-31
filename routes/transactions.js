@@ -643,6 +643,99 @@ router.get('/stats/overview', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/transactions/status/:hash - Statut d'une transaction par hash blockchain
+router.get('/status/:hash', authenticateToken, async (req, res) => {
+  try {
+    const { hash } = req.params;
+
+    if (!hash) {
+      return res.status(400).json({
+        success: false,
+        message: 'Hash de transaction requis'
+      });
+    }
+
+    // Rechercher la transaction par hash blockchain
+    const transaction = await Transaction.findOne({
+      'blockchain.hash': hash
+    }).populate('references.projectId', 'title status')
+      .populate('references.userId', 'username entity')
+      .populate('signature.signedBy', 'username entity');
+
+    if (!transaction) {
+      return res.status(404).json({
+        success: false,
+        message: 'Transaction non trouvée'
+      });
+    }
+
+    // Vérifier le statut sur la blockchain
+    const blockchainStatus = {
+      hash: transaction.blockchain.hash,
+      blockNumber: transaction.blockchain.blockNumber,
+      timestamp: transaction.blockchain.timestamp,
+      previousHash: transaction.blockchain.previousHash,
+      nextHash: transaction.blockchain.nextHash,
+      merkleRoot: transaction.blockchain.merkleRoot,
+      difficulty: transaction.blockchain.difficulty,
+      nonce: transaction.blockchain.nonce
+    };
+
+    // Informations de confirmation
+    const confirmationInfo = {
+      status: transaction.status,
+      confirmations: transaction.confirmation?.confirmations || 0,
+      requiredConfirmations: transaction.confirmation?.requiredConfirmations || 1,
+      isConfirmed: transaction.status === 'confirmed',
+      confirmationTime: transaction.confirmation?.confirmationTime,
+      lastConfirmation: transaction.confirmation?.lastConfirmation
+    };
+
+    // Informations de signature
+    const signatureInfo = {
+      isSigned: !!transaction.signature?.signatureHash,
+      signedBy: transaction.signature?.signedBy,
+      signatureHash: transaction.signature?.signatureHash,
+      publicKey: transaction.signature?.publicKey,
+      certificateSerial: transaction.signature?.certificateSerial,
+      signatureTimestamp: transaction.signature?.signatureTimestamp
+    };
+
+    // Métadonnées de la transaction
+    const transactionMetadata = {
+      type: transaction.type,
+      amount: transaction.data?.amount,
+      currency: transaction.data?.currency,
+      description: transaction.data?.description,
+      references: transaction.references,
+      createdAt: transaction.createdAt,
+      updatedAt: transaction.updatedAt
+    };
+
+    const result = {
+      success: true,
+      data: {
+        transactionId: transaction.transactionId,
+        blockchain: blockchainStatus,
+        confirmation: confirmationInfo,
+        signature: signatureInfo,
+        metadata: transactionMetadata,
+        project: transaction.references.projectId,
+        user: transaction.references.userId
+      }
+    };
+
+    res.json(result);
+
+  } catch (error) {
+    console.error('Erreur lors de la vérification du statut de la transaction:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur interne du serveur'
+    });
+  }
+});
+
 // GET /api/transactions/recent - Transactions récentes
 router.get('/recent/list', authenticateToken, async (req, res) => {
   try {

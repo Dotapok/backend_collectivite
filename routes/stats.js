@@ -858,6 +858,205 @@ router.get('/performance',
   }
 );
 
+// GET /api/stats/budget - Statistiques budgétaires
+router.get('/budget', 
+  authenticateToken, 
+  requirePermission('view_reports'),
+  statsValidation,
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Paramètres invalides',
+          errors: errors.array()
+        });
+      }
+
+      const { startDate, endDate, region, category, entity } = req.query;
+
+      // Construire les filtres de base
+      const baseFilters = {};
+      if (startDate || endDate) {
+        baseFilters.createdAt = {};
+        if (startDate) baseFilters.createdAt.$gte = new Date(startDate);
+        if (endDate) baseFilters.createdAt.$lte = new Date(endDate);
+      }
+      if (region) baseFilters.region = region;
+      if (category) baseFilters.category = category;
+      if (entity) baseFilters.submittedByEntity = entity;
+
+      // Statistiques budgétaires globales
+      const budgetOverview = await Project.aggregate([
+        { $match: baseFilters },
+        {
+          $group: {
+            _id: null,
+            totalRequested: { $sum: '$budget.requested' },
+            totalApproved: { $sum: '$budget.approved' },
+            totalSpent: { $sum: '$budget.spent' },
+            avgRequested: { $avg: '$budget.requested' },
+            avgApproved: { $avg: '$budget.approved' },
+            avgSpent: { $avg: '$budget.spent' },
+            budgetEfficiency: {
+              $avg: {
+                $cond: [
+                  { $gt: ['$budget.approved', 0] },
+                  { $divide: ['$budget.spent', '$budget.approved'] },
+                  0
+                ]
+              }
+            }
+          }
+        }
+      ]);
+
+      // Statistiques budgétaires par catégorie
+      const budgetByCategory = await Project.aggregate([
+        { $match: baseFilters },
+        {
+          $group: {
+            _id: '$category',
+            count: { $sum: 1 },
+            totalRequested: { $sum: '$budget.requested' },
+            totalApproved: { $sum: '$budget.approved' },
+            totalSpent: { $sum: '$budget.spent' },
+            avgRequested: { $avg: '$budget.requested' },
+            avgApproved: { $avg: '$budget.approved' },
+            avgSpent: { $avg: '$budget.spent' }
+          }
+        },
+        { $sort: { totalRequested: -1 } }
+      ]);
+
+      // Statistiques budgétaires par région
+      const budgetByRegion = await Project.aggregate([
+        { $match: baseFilters },
+        {
+          $group: {
+            _id: '$region',
+            count: { $sum: 1 },
+            totalRequested: { $sum: '$budget.requested' },
+            totalApproved: { $sum: '$budget.approved' },
+            totalSpent: { $sum: '$budget.spent' },
+            avgRequested: { $avg: '$budget.requested' },
+            avgApproved: { $avg: '$budget.approved' },
+            avgSpent: { $avg: '$budget.spent' }
+          }
+        },
+        { $sort: { totalRequested: -1 } }
+      ]);
+
+      // Statistiques budgétaires par entité
+      const budgetByEntity = await Project.aggregate([
+        { $match: baseFilters },
+        {
+          $group: {
+            _id: '$submittedByEntity',
+            count: { $sum: 1 },
+            totalRequested: { $sum: '$budget.requested' },
+            totalApproved: { $sum: '$budget.approved' },
+            totalSpent: { $sum: '$budget.spent' },
+            avgRequested: { $avg: '$budget.requested' },
+            avgApproved: { $avg: '$budget.approved' },
+            avgSpent: { $avg: '$budget.spent' }
+          }
+        },
+        { $sort: { totalRequested: -1 } }
+      ]);
+
+      // Statistiques budgétaires temporelles
+      const budgetByTime = await Project.aggregate([
+        { $match: baseFilters },
+        {
+          $group: {
+            _id: {
+              $dateToString: {
+                format: '%Y-%m',
+                date: '$createdAt'
+              }
+            },
+            count: { $sum: 1 },
+            totalRequested: { $sum: '$budget.requested' },
+            totalApproved: { $sum: '$budget.approved' },
+            totalSpent: { $sum: '$budget.spent' }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]);
+
+      // Statistiques de performance budgétaire
+      const budgetPerformance = await Project.aggregate([
+        { $match: baseFilters },
+        {
+          $addFields: {
+            budgetUtilization: {
+              $cond: [
+                { $gt: ['$budget.approved', 0] },
+                { $divide: ['$budget.spent', '$budget.approved'] },
+                0
+              ]
+            },
+            budgetApprovalRate: {
+              $cond: [
+                { $gt: ['$budget.requested', 0] },
+                { $divide: ['$budget.approved', '$budget.requested'] },
+                0
+              ]
+            }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            avgBudgetUtilization: { $avg: '$budgetUtilization' },
+            avgBudgetApprovalRate: { $avg: '$budgetApprovalRate' },
+            projectsWithBudget: { $sum: { $cond: [{ $gt: ['$budget.requested', 0] }, 1, 0] } },
+            projectsApproved: { $sum: { $cond: [{ $gt: ['$budget.approved', 0] }, 1, 0] } },
+            projectsSpending: { $sum: { $cond: [{ $gt: ['$budget.spent', 0] }, 1, 0] } }
+          }
+        }
+      ]);
+
+      const result = {
+        success: true,
+        data: {
+          overview: budgetOverview[0] || {
+            totalRequested: 0,
+            totalApproved: 0,
+            totalSpent: 0,
+            avgRequested: 0,
+            avgApproved: 0,
+            avgSpent: 0,
+            budgetEfficiency: 0
+          },
+          byCategory: budgetByCategory,
+          byRegion: budgetByRegion,
+          byEntity: budgetByEntity,
+          byTime: budgetByTime,
+          performance: budgetPerformance[0] || {
+            avgBudgetUtilization: 0,
+            avgBudgetApprovalRate: 0,
+            projectsWithBudget: 0,
+            projectsApproved: 0,
+            projectsSpending: 0
+          }
+        }
+      };
+
+      res.json(result);
+
+    } catch (error) {
+      console.error('Erreur lors de la récupération des statistiques budgétaires:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur interne du serveur'
+      });
+    }
+  }
+);
+
 // GET /api/stats/blockchain - Statistiques blockchain
 router.get('/blockchain', 
   authenticateToken, 
