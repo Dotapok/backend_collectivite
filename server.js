@@ -10,7 +10,7 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const app = express();
-idgets de testconst server = http.createServer(app);
+const server = http.createServer(app);
 
 // Import de la configuration CORS
 const { corsOptions, socketCorsOptions } = require('./config/cors');
