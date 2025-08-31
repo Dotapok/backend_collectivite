@@ -858,6 +858,134 @@ router.get('/performance',
   }
 );
 
+// GET /api/stats/blockchain - Statistiques blockchain
+router.get('/blockchain', 
+  authenticateToken, 
+  requirePermission('view_reports'),
+  statsValidation,
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Paramètres invalides',
+          errors: errors.array()
+        });
+      }
+
+      const { startDate, endDate } = req.query;
+
+      // Construire les filtres de base
+      const baseFilters = {};
+      if (startDate || endDate) {
+        baseFilters['blockchain.timestamp'] = {};
+        if (startDate) baseFilters['blockchain.timestamp'].$gte = new Date(startDate);
+        if (endDate) baseFilters['blockchain.timestamp'].$lte = new Date(endDate);
+      }
+
+      // Statistiques des transactions blockchain
+      const blockchainStats = await Transaction.aggregate([
+        { $match: baseFilters },
+        {
+          $group: {
+            _id: null,
+            totalTransactions: { $sum: 1 },
+            totalBlocks: { $addToSet: '$blockchain.blockNumber' },
+            uniqueBlocks: { $size: { $addToSet: '$blockchain.blockNumber' } },
+            avgBlockSize: { $avg: { $strLenCP: '$blockchain.hash' } },
+            totalGasUsed: { $sum: '$blockchain.difficulty' || 0 },
+            avgDifficulty: { $avg: '$blockchain.difficulty' || 0 },
+            firstTransaction: { $min: '$blockchain.timestamp' },
+            lastTransaction: { $max: '$blockchain.timestamp' }
+          }
+        }
+      ]);
+
+      // Statistiques par type de transaction
+      const transactionTypeStats = await Transaction.aggregate([
+        { $match: baseFilters },
+        {
+          $group: {
+            _id: '$type',
+            count: { $sum: 1 },
+            avgConfirmationTime: { $avg: { $subtract: ['$blockchain.timestamp', '$createdAt'] } }
+          }
+        },
+        { $sort: { count: -1 } }
+      ]);
+
+      // Statistiques de performance blockchain
+      const performanceStats = await Transaction.aggregate([
+        { $match: baseFilters },
+        {
+          $group: {
+            _id: {
+              $dateToString: {
+                format: '%Y-%m-%d',
+                date: '$blockchain.timestamp'
+              }
+            },
+            transactions: { $sum: 1 },
+            avgDifficulty: { $avg: '$blockchain.difficulty' || 0 },
+            totalGasUsed: { $sum: '$blockchain.difficulty' || 0 }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]);
+
+      // Statistiques de sécurité
+      const securityStats = await Transaction.aggregate([
+        { $match: baseFilters },
+        {
+          $group: {
+            _id: null,
+            transactionsWithSignature: {
+              $sum: { $cond: [{ $ne: ['$signature.signatureHash', null] }, 1, 0] }
+            },
+            transactionsWithCertificate: {
+              $sum: { $cond: [{ $ne: ['$signature.certificateSerial', null] }, 1, 0] }
+            },
+            totalTransactions: { $sum: 1 }
+          }
+        }
+      ]);
+
+      const result = {
+        success: true,
+        data: {
+          overview: blockchainStats[0] || {
+            totalTransactions: 0,
+            totalBlocks: 0,
+            uniqueBlocks: 0,
+            avgBlockSize: 0,
+            totalGasUsed: 0,
+            avgDifficulty: 0,
+            firstTransaction: null,
+            lastTransaction: null
+          },
+          transactionTypes: transactionTypeStats,
+          performance: performanceStats,
+          security: securityStats[0] || {
+            transactionsWithSignature: 0,
+            transactionsWithCertificate: 0,
+            totalTransactions: 0
+          }
+        }
+      };
+
+      res.json(result);
+
+    } catch (error) {
+      console.error('Erreur lors de la récupération des statistiques blockchain:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur interne du serveur'
+      });
+    }
+  }
+);
+
 // GET /api/stats/export - Exporter les statistiques
 router.get('/export', 
   authenticateToken, 
