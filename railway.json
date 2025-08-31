@@ -13,6 +13,7 @@
   "variables": {
     "NODE_ENV": "production",
     "PORT": "8080",
-    "RAILWAY_PUBLIC_DOMAIN": "https://backendcollectivite.up.railway.app"
+    "RAILWAY_PUBLIC_DOMAIN": "https://backendcollectivite.up.railway.app",
+    "AUTO_INIT_DB": "true"
   }
 }
