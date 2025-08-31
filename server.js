@@ -12,14 +12,11 @@ require('dotenv').config();
 const app = express();
 const server = http.createServer(app);
 
+// Import de la configuration CORS
+const { corsOptions, socketCorsOptions } = require('./config/cors');
+
 // Configuration Socket.IO
-const io = socketIo(server, {
-  cors: {
-    origin: process.env.SOCKET_CORS_ORIGIN || "http://localhost:3000",
-    methods: ["GET", "POST"],
-    credentials: true
-  }
-});
+const io = socketIo(server, socketCorsOptions);
 
 // Middleware de sécurité et performance
 app.use(helmet());
@@ -27,10 +24,7 @@ app.use(compression());
 app.use(morgan('combined'));
 
 // Configuration CORS
-app.use(cors({
-  origin: process.env.SOCKET_CORS_ORIGIN || "http://localhost:3000",
-  credentials: true
-}));
+app.use(cors(corsOptions));
 
 // Rate limiting
 const limiter = rateLimit({
