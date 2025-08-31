@@ -5,23 +5,20 @@ const evaluationSchema = new mongoose.Schema({
   projectId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Project',
-    required: true,
-    index: true
+    required: true
   },
   
   evaluatorId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
-    index: true
+    required: true
   },
   
   // Statut de l'évaluation
   status: {
     type: String,
     enum: ['pending', 'in_progress', 'completed', 'approved', 'rejected', 'cancelled'],
-    default: 'pending',
-    index: true
+    default: 'pending'
   },
   
   // Critères d'évaluation

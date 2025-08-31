@@ -6,12 +6,9 @@ const mongoose = require('mongoose');
 const databaseConfig = {
   // Options de connexion MongoDB
   options: {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
     maxPoolSize: 10, // Nombre maximum de connexions dans le pool
     serverSelectionTimeoutMS: 5000, // Timeout pour la sélection du serveur
     socketTimeoutMS: 45000, // Timeout pour les opérations socket
-    bufferMaxEntries: 0, // Désactiver le buffering
     bufferCommands: false, // Désactiver le buffering des commandes
     autoIndex: process.env.NODE_ENV === 'development', // Index automatiques en développement seulement
     autoCreate: process.env.NODE_ENV === 'development' // Création automatique des collections en développement

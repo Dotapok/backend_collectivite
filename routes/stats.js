@@ -160,7 +160,7 @@ router.get('/overview',
           }
         },
         { $sort: { count: -1 } }
-      ];
+      ]);
 
       const stats = {
         projects: projectStats[0] || {

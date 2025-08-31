@@ -121,8 +121,6 @@ const userSchema = new mongoose.Schema({
 });
 
 // Index pour optimiser les requêtes
-userSchema.index({ username: 1 });
-userSchema.index({ email: 1 });
 userSchema.index({ role: 1 });
 userSchema.index({ entity: 1 });
 userSchema.index({ region: 1 });

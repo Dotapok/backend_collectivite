@@ -257,8 +257,6 @@ const transactionSchema = new mongoose.Schema({
 });
 
 // Index pour optimiser les requêtes
-transactionSchema.index({ transactionId: 1 });
-transactionSchema.index({ 'blockchain.hash': 1 });
 transactionSchema.index({ 'blockchain.blockNumber': -1 });
 transactionSchema.index({ type: 1 });
 transactionSchema.index({ status: 1 });

@@ -8,7 +8,7 @@ const Project = require('../models/Project');
 const Transaction = require('../models/Transaction');
 
 // Configuration de la connexion MongoDB
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://mongo:djnoJpkMyBZZoYbOgfLFMjGurMtjEdye@metro.proxy.rlwy.net:12298';
+const MONGODB_URI = 'mongodb://mongo:djnoJpkMyBZZoYbOgfLFMjGurMtjEdye@metro.proxy.rlwy.net:12298';
 
 // Données d'initialisation
 const initialUsers = [
