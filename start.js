@@ -7,7 +7,11 @@
 
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config();
+
+// Charger dotenv seulement en développement local
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 
 // Couleurs pour la console
 const colors = {
@@ -48,10 +52,19 @@ function checkEnvironment() {
   
   if (missingVars.length > 0) {
     log('\n⚠️  Variables d\'environnement manquantes!', 'yellow');
-    log('Créer un fichier .env basé sur env.example', 'yellow');
-    log('Exemple:', 'yellow');
-    log('MONGODB_URI=mongodb://localhost:27017/dtc_ekani', 'cyan');
-    log('JWT_SECRET=votre_secret_jwt_tres_securise_ici', 'cyan');
+    
+    if (process.env.NODE_ENV === 'production') {
+      log('🔧 En production, configurez ces variables dans Railway:', 'yellow');
+      log('   - Allez dans votre projet Railway', 'cyan');
+      log('   - Variables d\'environnement', 'cyan');
+      log('   - Ajoutez MONGODB_URI et JWT_SECRET', 'cyan');
+    } else {
+      log('Créer un fichier .env basé sur env.example', 'yellow');
+      log('Exemple:', 'yellow');
+      log('MONGODB_URI=mongodb://localhost:27017/dtc_ekani', 'cyan');
+      log('JWT_SECRET=votre_secret_jwt_tres_securise_ici', 'cyan');
+    }
+    
     log('\n', 'reset');
     return false;
   }
@@ -95,10 +108,25 @@ function showStartupInfo() {
   log(`   Environnement: ${process.env.NODE_ENV || 'development'}`, 'white');
   log(`   Base de données: ${process.env.MONGODB_URI}`, 'white');
   
+  if (process.env.NODE_ENV === 'production') {
+    const railwayUrl = process.env.RAILWAY_PUBLIC_DOMAIN || 'https://backendcollectivite.up.railway.app';
+    log(`   URL publique: ${railwayUrl}`, 'white');
+  }
+  
   log('\n🔗 URLs:', 'cyan');
-  log(`   API: http://localhost:${process.env.PORT || 5000}/api`, 'white');
-  log(`   Santé: http://localhost:${process.env.PORT || 5000}/api/health`, 'white');
-  log(`   Socket.IO: http://localhost:${process.env.PORT || 5000}`, 'white');
+  
+  if (process.env.NODE_ENV === 'production') {
+    // En production, utiliser l'URL Railway
+    const railwayUrl = process.env.RAILWAY_PUBLIC_DOMAIN || 'https://backendcollectivite.up.railway.app';
+    log(`   API: ${railwayUrl}/api`, 'white');
+    log(`   Santé: ${railwayUrl}/api/health`, 'white');
+    log(`   Socket.IO: ${railwayUrl}`, 'white');
+  } else {
+    // En développement local
+    log(`   API: http://localhost:${process.env.PORT || 5000}/api`, 'white');
+    log(`   Santé: http://localhost:${process.env.PORT || 5000}/api/health`, 'white');
+    log(`   Socket.IO: http://localhost:${process.env.PORT || 5000}`, 'white');
+  }
   
   log('\n📚 Commandes utiles:', 'cyan');
   log('   npm run dev          - Mode développement', 'white');
