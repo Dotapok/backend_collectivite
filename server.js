@@ -127,8 +127,17 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Serveur DTC EKANI démarré sur le port ${PORT}`);
   console.log(`🌍 Environnement: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`📊 API disponible sur: http://localhost:${PORT}/api`);
-  console.log(`🔌 Socket.IO actif sur: http://localhost:${PORT}`);
+  
+  if (process.env.NODE_ENV === 'production') {
+    // En production, utiliser l'URL Railway
+    const railwayUrl = process.env.RAILWAY_PUBLIC_DOMAIN || 'https://backendcollectivite.up.railway.app';
+    console.log(`📊 API disponible sur: ${railwayUrl}/api`);
+    console.log(`🔌 Socket.IO actif sur: ${railwayUrl}`);
+  } else {
+    // En développement local
+    console.log(`📊 API disponible sur: http://localhost:${PORT}/api`);
+    console.log(`🔌 Socket.IO actif sur: http://localhost:${PORT}`);
+  }
 });
 
 // Gestion gracieuse de l'arrêt
